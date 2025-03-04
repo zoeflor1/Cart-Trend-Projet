@@ -1,0 +1,172 @@
+# CODE AIRFLOW : Extraction, pré-traitement et Chargement dans Big Query
+
+import pandas as pd
+from airflow import DAG
+from airflow.operators.python import PythonOperator
+from datetime import datetime
+import os
+from google.oauth2 import service_account
+from airflow.providers.google.cloud.hooks.bigquery import BigQueryHook
+
+
+# 📌 Configurations
+BQ_PROJECT_ID = "cart-trend-projet"
+BQ_DATASET_ID = "CartTrend"
+DRIVE_FOLDER_ID = "1ydYmJnSiL3EKE_m7Zr8qauwj4E4aAn-i"  # ID du dossier Google Drive
+
+FILES_TO_TABLES = {
+    "Carttrend_Commandes": "Carttrend_Commandes",
+    "Carttrend_Produits": "Carttrend_Produits",
+    "Carttrend_Clients": "Carttrend_Clients",
+    "Carttrend_Details_Commandes": "Carttrend_Details_Commandes",
+    "Carttrend_Entrepots": "Carttrend_Entreprots",
+    "Carttrend_Entreprots_Machines": "Carttrend_Entreprots_Machines",
+    "Carttrend_Campaigns": "Carttrend_Campaigns",
+    "Carttrend_Posts": "Carttrend_Posts",
+    "Carttrend_Satisfaction": "Carttrend_Satisfaction",
+    "Carttrend_Promotions": "Carttrend_Promotions",
+}
+
+# 📌 Dictionnaire de mappage des noms de colonnes
+mappage_colonnes = {
+    "temps_d'arrêt": 'temps_darrêt',
+    # Ajoutez d'autres mappages selon vos besoins
+}
+
+# 📌 Extraction des fichiers depuis Google Drive (sans credentials)
+def extract_from_drive(ti):
+    extracted_data = []
+
+    # Liste d'exemple de fichiers avec ID
+    files_list = [
+        {'name': 'Carttrend_Entrepots', 'url': 'https://docs.google.com/spreadsheets/d/1FSP2Gv31H1lnpLh6nmaNFcKlCE11OlbA/edit'},
+        {'name': 'Carttrend_Entreprots_Machines', 'url': 'https://docs.google.com/spreadsheets/d/1s9R6eJPlC0Vwz_OPRTZ43XXfknBAXktn/edit'},
+        {'name': 'Carttrend_Produits', 'url': 'https://docs.google.com/spreadsheets/d/1I4KHaFSEMMJ2E7OEO-v1KWbYfOGUBGiC8XCUVvFHs2I/edit'},
+        {'name': 'Carttrend_Commandes', 'url': 'https://docs.google.com/spreadsheets/d/1QVXmhf9b2OSpUVb7uBOQOClk19ldleNYQcloKCrHlgA/edit'},
+        {'name': 'Carttrend_Posts', 'url': 'https://docs.google.com/spreadsheets/d/1N81drG9zhp9VBZh3LqPoQ01cMvXol1kX43hqhQtAZ44/edit'},
+        {'name': 'Carttrend_Promotions', 'url': 'https://docs.google.com/spreadsheets/d/1p2O-Zgmhcmfov1BkLb7Rx9k2iwg65kFcgVyYwb4CYs4/edit'},
+        {'name': 'Carttrend_Satisfaction', 'url': 'https://docs.google.com/spreadsheets/d/1G7rST778z_zcewJX9CuURwIqTSKfWCU_i6ZJ9P8edzM/edit'},
+        {'name': 'Carttrend_Details_Commandes', 'url': 'https://docs.google.com/spreadsheets/d/1kN4O2D-LIvbLSTse2RsguJMPwdMWKtVY6dEl_4hcyqw/edit'},
+        {'name': 'Carttrend_Clients', 'url': 'https://docs.google.com/spreadsheets/d/1PkZuSLHn0eZQLjhBx8qdZ_bh_wzgMbenrYyMGYrxBic/edit'},
+        {'name': 'Carttrend_Campaigns', 'url': 'https://docs.google.com/spreadsheets/d/1_WxFdSWGGCNreMgSWf9nfuP-Ye_RnCX1Xs5ubnjGp9s/edit'},
+    ]
+
+    for file in files_list:
+        url = file["url"]
+
+        file_name = file["name"]
+
+        csv_url = url.replace("/edit", "/export?format=csv")
+
+
+        try:
+
+            df = pd.read_csv(csv_url)  # Charger les CSV normalement
+
+            extracted_data.append((file_name, df))
+
+
+
+            print(f"✅ {file_name} chargé ({df.shape[0]} lignes, {df.shape[1]} colonnes)")
+
+        except Exception as e:
+            print(f"❌ Erreur avec {file_name}: {e}")
+
+    # Push des données extraites pour la tâche suivante dans Airflow
+    ti.xcom_push(key='extracted_data', value=extracted_data)
+
+
+
+# Fonction pour renommer les colonnes des fichiers CSV
+def renommer_colonnes(ti):
+    # Récupérer les données extraites à partir de XCom
+    extracted_data = ti.xcom_pull(task_ids='extract_data', key='extracted_data')
+
+    # Dictionnaire pour stocker les données transformées
+    transformed_data = {}
+
+    for file_name, df in extracted_data:
+        df.columns = df.columns.str.strip()  # Supprime les espaces au début/fin
+        df.columns = df.columns.str.replace("’", "'", regex=False)  # Remplace l’apostrophe spéciale par un apostrophe normal
+
+       # Renommer les colonnes selon le mappage
+        df.rename(columns=mappage_colonnes, inplace=True)
+        transformed_data[file_name] = df
+
+        # Afficher les noms des colonnes après le renommage
+        print(f"Colonnes après renommage dans {file_name}: {df.columns.tolist()}")
+
+    # Utilisation de ti.xcom pour transmettre les données transformées à la tâche suivante
+    ti.xcom_push(key='transformed_data', value=transformed_data)
+
+
+
+
+# Définir la variable d'environnement pour Google Cloud
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/root/airflow/keys1.json"
+
+# Charger les credentials explicitement
+credentials = service_account.Credentials.from_service_account_file("/root/airflow/key1.json")
+
+
+# 📌 Chargement vers BigQuery
+def load_to_bigquery(ti):
+    transformed_data = ti.xcom_pull(task_ids='renommer_colonnes', key='transformed_data')
+
+    if not transformed_data:  # ✅ Vérification si les données sont vides
+        print("⚠️ Aucune donnée transformée trouvée, arrêt du chargement vers BigQuery.")
+        return
+
+    # Charger les credentials explicitement
+    credentials = service_account.Credentials.from_service_account_file("/root/airflow/key1.json")
+
+    for file_name, df in transformed_data.items():
+        if df is None or df.empty:  # ✅ Vérifier que df contient des données
+            print(f"⚠️ Aucune donnée à charger pour {file_name}, passage au suivant.")
+            continue
+
+        if file_name in FILES_TO_TABLES:
+            table_name = FILES_TO_TABLES[file_name]
+            print(f"📤 Remplacement des données de {file_name} vers BigQuery ({BQ_DATASET_ID}.{table_name})")
+            df.to_gbq(
+                f"{BQ_DATASET_ID}.{table_name}", 
+                project_id=BQ_PROJECT_ID, 
+                if_exists="replace",  # ✅ Remplacement des données (truncate)
+                credentials=credentials  
+            )
+
+
+# 📌 Définition du DAG
+default_args = {
+    "owner": "airflow",
+    "start_date": datetime(2024, 3, 1),
+    "retries": 1
+}
+
+with DAG(
+    dag_id="google_drive_to_bigquery",
+    default_args=default_args,
+    schedule_interval="@daily",  # Exécution quotidienne
+    catchup=False
+) as dag:
+
+    extract_data = PythonOperator(
+        task_id="extract_data",
+        python_callable=extract_from_drive,
+        provide_context=True  # Nous avons besoin de l'objet `ti` (Task Instance)
+    )
+
+    renommer_colonnes_task = PythonOperator(
+        task_id="renommer_colonnes",
+        python_callable=renommer_colonnes,
+        provide_context=True  # Nous avons besoin de l'objet `ti`
+    )
+
+    load_data = PythonOperator(
+        task_id="load_data",
+        python_callable=load_to_bigquery,
+        provide_context=True  # Nous avons besoin de l'objet `ti`
+    )
+
+    # Définition de la séquence des tâches
+    extract_data >> renommer_colonnes_task >> load_data
