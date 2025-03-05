@@ -1,0 +1,440 @@
+version: 2
+
+models:
+  - name: carttrend_satisfaction
+    description: "Table des avis clients et support nettoyée"
+    columns:
+      - name: id_satisfaction
+        description: "Identifiant unique de satisfaction"
+        tests:
+          - unique
+          - not_null
+
+      - name: id_commande
+        description: "Identifiant de la commande associée"
+        tests:
+          - not_null
+
+      - name: note_client
+        description: "Note donnée par le client (entre 1 et 5)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4, 5]
+
+      - name: commentaire
+        description: "Commentaire du client"
+      
+      - name: plainte
+        description: "Détail de la plainte du client"
+
+      - name: temps_réponse_support
+        description: "Temps de réponse en minutes (aucune valeur négative)"
+        tests:
+          - not_null
+          - check_greater_than:
+              value: 0
+
+      - name: type_plainte
+        description: "Type de plainte (remplace NULL par 'Others')"
+        tests:
+          - not_null
+
+      - name: employé_support
+        description: "Nom de l'employé du support en charge de la plainte (remplace NULL par 'NO_employee')"
+        tests:
+          - not_null
+
+
+
+
+
+  - name: carttrend_promotions
+    description: "Table des promotions avec séparation des valeurs en pourcentage et en euros"
+    columns:
+      - name: id_promotion
+        description: "Identifiant unique de la promotion"
+        tests:
+          - unique
+          - not_null
+
+      - name: id_produit
+        description: "Identifiant du produit concerné"
+        tests:
+          - not_null
+
+      - name: type_promotion
+        description: "Type de la promotion (réduction, cashback, etc.)"
+      
+      - name: date_début
+        description: "Date de début de la promotion"
+
+      - name: date_fin
+        description: "Date de fin de la promotion"
+
+      - name: responsable_promotion
+        description: "Nom du responsable de la promotion"
+      
+      - name: valeur_pourcentage
+        description: "Valeur de la promotion en pourcentage (NaN si non applicable)"
+        tests:
+          - not_null
+
+      - name: valeur_montant
+        description: "Valeur de la promotion en euros (NaN si non applicable)"
+        tests:
+          - not_null
+
+
+
+
+  - name: carttrend_produits
+    description: "Table des produits avec nettoyage des valeurs vides et suppression des doublons sur ID"
+    columns:
+      - name: ID
+        description: "Identifiant unique du produit"
+        tests:
+          - unique
+          - not_null
+
+      - name: Catégorie
+        description: "Catégorie du produit"
+
+      - name: Marque
+        description: "Marque du produit (remplace les vides par 'NaN')"
+
+      - name: Produit
+        description: "Nom du produit"
+      
+      - name: Prix
+        description: "Prix du produit"
+
+      - name: Sous-catégorie
+        description: "Sous-catégorie du produit (remplace les vides par 'NaN')"
+
+      - name: Variation
+        description: "Variation du produit (remplace les vides par 'NaN')"
+   
+   
+  
+  
+  
+  - name: carttrend_posts
+    description: "Table des posts avec suppression des doublons et tri par id_post"
+    columns:
+      - name: id_post
+        description: "Identifiant unique du post"
+        tests:
+          - unique
+          - not_null
+
+      - name: date_post
+        description: "Date de publication du post"
+
+      - name: canal_social
+        description: "Canal social sur lequel le post a été publié"
+
+      - name: volume_mentions
+        description: "Volume de mentions dans le post"
+
+      - name: sentiment_global
+        description: "Sentiment global du post (positif, négatif, neutre)"
+
+      - name: contenu_post
+        description: "Contenu textuel du post"
+
+
+
+
+  - name: stg_carttrend_campaigns
+    description: "Table des campagnes avec nettoyage des données (format de date, gestion des NULL et des valeurs négatives)"
+    columns:
+      - name: id_campagne
+        description: "Identifiant unique de la campagne"
+        tests:
+          - unique
+          - not_null
+
+      - name: date_clean
+        description: "Date de la campagne, convertie au format DATE"
+        tests:
+          - not_null
+
+      - name: événement_oui_non
+        description: "Indicateur si l'événement a eu lieu (remplace les valeurs NULL ou vides par 'No')"
+        tests:
+          - not_null
+
+      - name: événement_type_cleaned
+        description: "Type d'événement nettoyé (espaces et majuscule sur la première lettre)"
+      
+      - name: canal_cleaned
+        description: "Canal de la campagne nettoyé (espaces et majuscule sur la première lettre)"
+
+      - name: budget
+        description: "Budget de la campagne (les valeurs négatives sont remplacées par 0)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: [0, "positive_values"]
+
+      - name: impressions
+        description: "Nombre d'impressions (les valeurs négatives sont remplacées par 0)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: [0, "positive_values"]
+
+      - name: clics
+        description: "Nombre de clics (les valeurs négatives sont remplacées par 0)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: [0, "positive_values"]
+
+      - name: conversions
+        description: "Nombre de conversions (les valeurs négatives sont remplacées par 0)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: [0, "positive_values"]
+
+      - name: CTR
+        description: "Taux de clics (les valeurs négatives sont remplacées par 0)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: [0, "positive_values"]  
+
+
+
+
+
+  - name: stg_carttrend_clients
+    description: "Table des clients avec anonymisation et nettoyage des données"
+    columns:
+      - name: id_client
+        description: "Identifiant unique du client"
+        tests:
+          - unique
+          - not_null
+
+      - name: prenom_client
+        description: "Prénom du client"
+        tests:
+          - not_null
+
+      - name: nom_client
+        description: "Nom du client (anonymisé)"
+        tests:
+          - not_null
+
+      - name: email
+        description: "Email du client (anonymisé, avec les 3-4 derniers caractères avant '@' remplacés par '****')"
+        tests:
+          - not_null
+
+      - name: numéro_téléphone_normalisé
+        description: "Numéro de téléphone du client, normalisé avec indicatif pays (+33 pour la France)"
+        tests:
+          - not_null
+
+      - name: numéro_téléphone_anonymisé
+        description: "Numéro de téléphone du client, anonymisé en masquant tout sauf les 4 derniers chiffres"
+        tests:
+          - not_null
+
+      - name: genre
+        description: "Genre du client (les valeurs vides ou NULL sont remplacées par 'Autres')"
+        tests:
+          - not_null
+
+      - name: âge
+        description: "Âge du client, avec des valeurs aberrantes (inférieures à 10 ou supérieures à 150) ajustées"
+        tests:
+          - not_null
+          - accepted_values:
+              values: [10, "valid_age_range"]
+
+      - name: fréquence_visites
+        description: "Fréquence des visites du client (les valeurs NULL ou vides sont remplacées par 0)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: [0, "positive_values"]
+
+      - name: adresse_ip
+        description: "Adresse IP du client, anonymisée par un hachage"
+        tests:
+          - not_null
+
+      - name: date_inscription
+        description: "Date d'inscription du client, standardisée au format DATE"
+        tests:
+          - not_null
+
+      - name: favoris
+        description: "Liste des produits favoris du client"
+
+
+
+
+  - name: stg_carttrend_commandes
+    description: "Table des commandes avec nettoyage et uniformisation des données"
+    columns:
+      - name: id_commande
+        description: "Identifiant unique de la commande"
+        tests:
+          - unique
+          - not_null
+
+      - name: id_client
+        description: "Identifiant du client ayant passé la commande"
+        tests:
+          - not_null
+
+      - name: id_entrepôt_départ
+        description: "Identifiant de l'entrepôt de départ, formaté pour commencer par 'E' suivi de chiffres"
+        tests:
+          - not_null
+
+      - name: date_commande
+        description: "Date de la commande, formatée au format DATE"
+        tests:
+          - not_null
+
+      - name: statut_commande
+        description: "Statut de la commande (remplace les valeurs vides par 'NaN')"
+        tests:
+          - not_null
+
+      - name: id_promotion_appliquée
+        description: "Identifiant de la promotion appliquée à la commande (remplace les valeurs vides par 'NaN')"
+        tests:
+          - not_null
+
+      - name: mode_de_paiement
+        description: "Mode de paiement de la commande (remplace les valeurs vides par 'NaN')"
+        tests:
+          - not_null
+
+      - name: numéro_tracking
+        description: "Numéro de tracking de la commande (remplace les valeurs vides par 'NaN')"
+        tests:
+          - not_null
+
+      - name: date_livraison_estimée
+        description: "Date estimée de livraison de la commande (remplace les valeurs vides par 'NaN')"
+        tests:
+          - not_null
+
+
+
+
+  - name: stg_carttrend_details_commandes
+    description: "Table des détails des commandes avec nettoyage des valeurs vides et conversion de types"
+    columns:
+      - name: id_commande
+        description: "Identifiant unique de la commande"
+        tests:
+          - not_null
+
+      - name: id_produit
+        description: "Identifiant du produit dans la commande (remplace les valeurs vides par 'NaN')"
+        tests:
+          - not_null
+
+      - name: quantité
+        description: "Quantité de produit commandée (remplace les valeurs vides par 'NaN')"
+        tests:
+          - not_null
+
+      - name: emballage_spécial
+        description: "Indicateur d'emballage spécial pour le produit (remplace les valeurs vides par 'NaN')"
+        tests:
+          - not_null
+
+
+
+
+  - name: stg_carttrend_entreprots_machines
+    description: "Table des machines dans les entrepôts avec nettoyage et normalisation des données"
+    columns:
+      - name: id_entrepot_machine
+        description: "Identifiant unique de l'enregistrement (concaténé si vide)"
+        tests:
+          - unique
+          - not_null
+
+      - name: id_machine
+        description: "Identifiant unique de la machine"
+        tests:
+          - not_null
+
+      - name: id_entrepôt
+        description: "Identifiant unique de l'entrepôt"
+        tests:
+          - not_null
+
+      - name: type_machine
+        description: "Type de la machine (remplace les valeurs vides par 'NaN')"
+        tests:
+          - not_null
+
+      - name: etat_machine
+        description: "État actuel de la machine (remplace les valeurs vides par 'NaN')"
+        tests:
+          - not_null
+
+      - name: temps_darret
+        description: "Temps d'arrêt de la machine (remplace les valeurs NULL par 0)"
+        tests:
+          - not_null
+
+      - name: volume_traite
+        description: "Volume traité par la machine (remplace les valeurs NULL par 0)"
+        tests:
+          - not_null
+
+      - name: mois
+        description: "Mois de l'enregistrement en format 'YYYY-MM' (remplace les valeurs mal formatées par 'NaN')"
+        tests:
+          - not_null
+
+
+
+
+
+  - name: stg_entrepots
+    description: "Table des entrepôts avec nettoyage et normalisation des données"
+    columns:
+      - name: id_entrepôt
+        description: "Identifiant unique de l'entrepôt"
+        tests:
+          - unique
+          - not_null
+
+      - name: localisation
+        description: "Localisation de l'entrepôt (nettoyée des espaces superflus)"
+        tests:
+          - not_null
+
+      - name: capacite_max
+        description: "Capacité maximale de stockage (valeurs négatives remplacées par 0)"
+        tests:
+          - not_null
+
+      - name: volume_stocke
+        description: "Volume actuellement stocké (valeurs négatives remplacées par 0)"
+        tests:
+          - not_null
+
+      - name: taux_remplissage
+        description: "Taux de remplissage de l'entrepôt (valeurs négatives remplacées par 0)"
+        tests:
+          - not_null
+
+      - name: température_moyenne_entrepôt
+        description: "Température moyenne enregistrée dans l'entrepôt"
+        tests:
+          - not_null    
