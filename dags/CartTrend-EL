@@ -1,18 +1,20 @@
 # CODE AIRFLOW : Extraction, pré-traitement et Chargement dans Big Query
 
+
 import pandas as pd
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from datetime import datetime
 import os
 from google.oauth2 import service_account
-from airflow.providers.google.cloud.hooks.bigquery import BigQueryHook
+from airflow.providers.http.hooks.http import HttpHook 
+import json
 
 
 # 📌 Configurations
 BQ_PROJECT_ID = "cart-trend-projet"
 BQ_DATASET_ID = "CartTrend"
-DRIVE_FOLDER_ID = "1ydYmJnSiL3EKE_m7Zr8qauwj4E4aAn-i"  # ID du dossier Google Drive
+DRIVE_FOLDER_ID = "1ydYmJnSiL3EKE_m7Zr8qauwj4E4aAn-i"
 
 FILES_TO_TABLES = {
     "Carttrend_Commandes": "Carttrend_Commandes",
@@ -27,17 +29,12 @@ FILES_TO_TABLES = {
     "Carttrend_Promotions": "Carttrend_Promotions",
 }
 
-# 📌 Dictionnaire de mappage des noms de colonnes
 mappage_colonnes = {
     "temps_d'arrêt": 'temps_darrêt',
-    # Ajoutez d'autres mappages selon vos besoins
 }
 
-# 📌 Extraction des fichiers depuis Google Drive (sans credentials)
 def extract_from_drive(ti):
     extracted_data = []
-
-    # Liste d'exemple de fichiers avec ID
     files_list = [
         {'name': 'Carttrend_Entrepots', 'url': 'https://docs.google.com/spreadsheets/d/1FSP2Gv31H1lnpLh6nmaNFcKlCE11OlbA/edit'},
         {'name': 'Carttrend_Entreprots_Machines', 'url': 'https://docs.google.com/spreadsheets/d/1s9R6eJPlC0Vwz_OPRTZ43XXfknBAXktn/edit'},
@@ -53,75 +50,41 @@ def extract_from_drive(ti):
 
     for file in files_list:
         url = file["url"]
-
         file_name = file["name"]
-
         csv_url = url.replace("/edit", "/export?format=csv")
 
-
         try:
-
-            df = pd.read_csv(csv_url)  # Charger les CSV normalement
-
+            df = pd.read_csv(csv_url)
             extracted_data.append((file_name, df))
-
-
-
             print(f"✅ {file_name} chargé ({df.shape[0]} lignes, {df.shape[1]} colonnes)")
-
         except Exception as e:
             print(f"❌ Erreur avec {file_name}: {e}")
 
-    # Push des données extraites pour la tâche suivante dans Airflow
     ti.xcom_push(key='extracted_data', value=extracted_data)
 
-
-
-# Fonction pour renommer les colonnes des fichiers CSV
 def renommer_colonnes(ti):
-    # Récupérer les données extraites à partir de XCom
     extracted_data = ti.xcom_pull(task_ids='extract_data', key='extracted_data')
-
-    # Dictionnaire pour stocker les données transformées
     transformed_data = {}
 
     for file_name, df in extracted_data:
-        df.columns = df.columns.str.strip()  # Supprime les espaces au début/fin
-        df.columns = df.columns.str.replace("’", "'", regex=False)  # Remplace l’apostrophe spéciale par un apostrophe normal
-
-       # Renommer les colonnes selon le mappage
+        df.columns = df.columns.str.strip()
+        df.columns = df.columns.str.replace("’", "'", regex=False)
         df.rename(columns=mappage_colonnes, inplace=True)
         transformed_data[file_name] = df
 
-        # Afficher les noms des colonnes après le renommage
-        print(f"Colonnes après renommage dans {file_name}: {df.columns.tolist()}")
-
-    # Utilisation de ti.xcom pour transmettre les données transformées à la tâche suivante
     ti.xcom_push(key='transformed_data', value=transformed_data)
 
-
-
-
-# Définir la variable d'environnement pour Google Cloud
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/root/airflow/keys1.json"
-
-# Charger les credentials explicitement
-credentials = service_account.Credentials.from_service_account_file("/root/airflow/key1.json")
-
-
-# 📌 Chargement vers BigQuery
 def load_to_bigquery(ti):
     transformed_data = ti.xcom_pull(task_ids='renommer_colonnes', key='transformed_data')
 
-    if not transformed_data:  # ✅ Vérification si les données sont vides
+    if not transformed_data:
         print("⚠️ Aucune donnée transformée trouvée, arrêt du chargement vers BigQuery.")
         return
 
-    # Charger les credentials explicitement
-    credentials = service_account.Credentials.from_service_account_file("/root/airflow/key1.json")
+    credentials = service_account.Credentials.from_service_account_file("/root/airflow/cart-trend-projet.json") ## 📌📌 Changement de votre clef JSON et le Chemin 📌📌 ##
 
     for file_name, df in transformed_data.items():
-        if df is None or df.empty:  # ✅ Vérifier que df contient des données
+        if df is None or df.empty:
             print(f"⚠️ Aucune donnée à charger pour {file_name}, passage au suivant.")
             continue
 
@@ -129,12 +92,37 @@ def load_to_bigquery(ti):
             table_name = FILES_TO_TABLES[file_name]
             print(f"📤 Remplacement des données de {file_name} vers BigQuery ({BQ_DATASET_ID}.{table_name})")
             df.to_gbq(
-                f"{BQ_DATASET_ID}.{table_name}", 
-                project_id=BQ_PROJECT_ID, 
-                if_exists="replace",  # ✅ Remplacement des données (truncate)
-                credentials=credentials  
+                f"{BQ_DATASET_ID}.{table_name}",
+                project_id=BQ_PROJECT_ID,
+                if_exists="replace",
+                credentials=credentials
             )
 
+# 📌 DBT Execution via API (Utilisation de HttpHook au lieu de SimpleHttpOperator)
+DBT_CLOUD_ACCOUNT_ID = "70471823437194"
+DBT_CLOUD_JOB_ID = "70471823434709"
+
+def trigger_dbt_cloud_run():
+    http = HttpHook(method="POST", http_conn_id="dbt_cloud")
+
+    payload = {
+        "cause": "Triggering from Airflow"
+    }
+
+    # Convertir le dictionnaire en JSON
+    json_payload = json.dumps(payload)
+
+    response = http.run(
+        endpoint=f"/api/v2/accounts/{DBT_CLOUD_ACCOUNT_ID}/jobs/{DBT_CLOUD_JOB_ID}/run/",
+        headers={"Content-Type": "application/json"},
+        data=json_payload  # Passer la chaîne JSON ici
+    )
+    return response.text
+
+dbt_auto_data = PythonOperator(
+    task_id="dbt_auto_data",
+    python_callable=trigger_dbt_cloud_run
+)
 
 # 📌 Définition du DAG
 default_args = {
@@ -144,29 +132,29 @@ default_args = {
 }
 
 with DAG(
-    dag_id="google_drive_to_bigquery",
+    dag_id="google_drive_to_bigquery_and_dbt",
     default_args=default_args,
-    schedule_interval="@daily",  # Exécution quotidienne
+    schedule_interval="@daily",
     catchup=False
 ) as dag:
 
     extract_data = PythonOperator(
         task_id="extract_data",
         python_callable=extract_from_drive,
-        provide_context=True  # Nous avons besoin de l'objet `ti` (Task Instance)
+        provide_context=True
     )
 
     renommer_colonnes_task = PythonOperator(
         task_id="renommer_colonnes",
         python_callable=renommer_colonnes,
-        provide_context=True  # Nous avons besoin de l'objet `ti`
+        provide_context=True
     )
 
     load_data = PythonOperator(
         task_id="load_data",
         python_callable=load_to_bigquery,
-        provide_context=True  # Nous avons besoin de l'objet `ti`
+        provide_context=True
     )
 
-    # Définition de la séquence des tâches
-    extract_data >> renommer_colonnes_task >> load_data
+    extract_data >> renommer_colonnes_task >> load_data >> dbt_auto_data
+
