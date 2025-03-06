@@ -33,7 +33,7 @@ cleaned_data AS (
                 THEN REPLACE(REGEXP_REPLACE(`valeur_promotion`, r'€\s*', ''), ',', '.')
                 WHEN REGEXP_CONTAINS(`valeur_promotion`, r'^€\s*\d+$') 
                 THEN REGEXP_REPLACE(`valeur_promotion`, r'€\s*', '')
-            END, 'NaN') AS `valeur_montant`
+            END, 'NaN') AS `valeur_remise`
 
     FROM raw_data
 )

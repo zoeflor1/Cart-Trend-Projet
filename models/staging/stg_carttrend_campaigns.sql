@@ -2,16 +2,16 @@
 SELECT 
     id_campagne,
 
-    PARSE_DATE('%Y-%m-%d', date) AS date_clean,  -- Convertir la colonne 'date' en format DATE
+    PARSE_DATE('%Y-%m-%d', date) AS date,  -- Convertir la colonne 'date' en format DATE
 
     CASE 
         WHEN TRIM(`événement_oui_non`) = '' OR `événement_oui_non` IS NULL THEN 'No'  -- Si la valeur est vide ou NULL, remplacer par 'No'
         ELSE INITCAP(TRIM(COALESCE(`événement_oui_non`, '')))  -- Enlever les espaces et garder la valeur avec la première lettre en majuscule
     END AS `événement_oui_non`,
 
-    INITCAP(TRIM(COALESCE(`événement_type`, ''))) AS `événement_type_cleaned`,   -- Garder la colonne 'événement_type' telle quelle
+    INITCAP(TRIM(COALESCE(`événement_type`, ''))) AS `événement_type`,   -- Garder la colonne 'événement_type' telle quelle
 
-    INITCAP(TRIM(COALESCE(canal, ''))) AS canal_cleaned,           -- Garder la colonne 'canal' telle quelle
+    INITCAP(TRIM(COALESCE(canal, ''))) AS canal,           -- Garder la colonne 'canal' telle quelle
 
     -- Empêcher les valeurs négatives pour 'budget' en remplaçant par 0
     GREATEST(COALESCE(budget, 0), 0) AS budget,  -- Remplacer NULL ou une valeur négative par 0
