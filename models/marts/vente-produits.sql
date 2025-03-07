@@ -51,6 +51,6 @@ SELECT
     pr.`Catégorie`,
     pr.Marque
 FROM produit_metrics p
-JOIN `cart-trend-projet.CartTrend.stg_carttrend_produit` pr 
+JOIN `cart-trend-projet.CartTrend.stg_carttrend_produits` pr 
     ON p.id_produit = pr.ID
 ORDER BY p.quantite_vendue DESC

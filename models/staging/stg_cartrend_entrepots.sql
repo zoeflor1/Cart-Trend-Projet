@@ -26,5 +26,5 @@ SELECT
     -- Conserver la température moyenne de l'entrepôt sans modification
     `température_moyenne_entrepôt`
 
-FROM `cart-trend-projet.CartTrend.Carttrend_Entreprots`
+FROM `cart-trend-projet.CartTrend.Carttrend_Entrepots`
 WHERE `id_entrepôt` IS NOT NULL

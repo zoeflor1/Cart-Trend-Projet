@@ -14,7 +14,8 @@ SELECT
     COALESCE(NULLIF(TRIM(mode_de_paiement), ''), 'NaN') AS mode_de_paiement,
     COALESCE(NULLIF(TRIM(`numéro_tracking`), ''), 'NaN') AS `numéro_tracking`,
 
-    COALESCE(CAST(PARSE_DATE('%Y-%m-%d', `date_livraison_estimée`) AS STRING), 'NaN') AS `date_livraison_estimée`,
+    -- Conversion de date_livraison_estimée en format DATE
+    COALESCE(PARSE_DATE('%Y-%m-%d', `date_livraison_estimée`), DATE '1970-01-01') AS `date_livraison_estimée`, 
 
     -- Calcul du délai en jours entre la date de commande et la date de livraison estimée
     DATE_DIFF(
