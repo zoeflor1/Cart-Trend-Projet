@@ -6,7 +6,7 @@ WITH satisfaction AS (
         `note_client`,
         LOWER(`commentaire`) AS commentaire  -- Mise en minuscule pour uniformiser
     FROM `CartTrend.stg_carttrend_satisfaction`
-    WHERE `commentaire` IS NOT NULL  
+    WHERE `commentaire` IS NOT NULL
 ),
 
 classification AS (
