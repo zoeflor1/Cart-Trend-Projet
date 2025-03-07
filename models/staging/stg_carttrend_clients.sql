@@ -49,8 +49,10 @@ SELECT
     -- Standardiser la date d'inscription en format DATE
     PARSE_DATE('%Y-%m-%d', date_inscription) AS date_inscription,
 
-    -- Garder 'favoris' tel quel
-    favoris  
+    -- Transformer les favoris pour ajouter "00" entre le "P" et les chiffres
+    -- Utilisation de REGEXP_REPLACE pour ajouter "00" entre "P" et les chiffres
+    REGEXP_REPLACE(favoris, r'P(\d+)', r'P00\1') AS favoris
+
         
 FROM `cart-trend-projet.CartTrend.Carttrend_Clients`
 WHERE id_client IS NOT NULL  -- Exclure les lignes où 'id_client' est NULL
