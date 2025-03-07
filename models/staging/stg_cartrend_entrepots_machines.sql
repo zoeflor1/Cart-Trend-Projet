@@ -24,7 +24,7 @@ SELECT
                 'NaN' -- Si le mois est mal formaté, on le remplace par 'NaN'
         END AS mois
 
-FROM `cart-trend-projet.CartTrend.Carttrend_Entreprots_Machines`
+FROM `cart-trend-projet.CartTrend.Carttrend_Entrepots_Machines`
 
 -- Filtrer les lignes où id_entrepot ou id_machine sont NULL
 WHERE `id_entrepôt` is not null

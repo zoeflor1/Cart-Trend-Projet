@@ -6,34 +6,40 @@ WITH raw_data AS (
         `valeur_promotion`,
         `date_début`,
         `date_fin`,
-        `responsable_promotion`,
+        `responsable_promotion`
     FROM `cart-trend-projet.CartTrend.Carttrend_Promotions`
 ),
 
 cleaned_data AS (
     SELECT 
-        `id_promotion`,
+        -- Transformation de id_promotion :
+        -- 1. Supprime "PROM" du début
+        -- 2. Assure que le format soit "P" suivi de 3 chiffres (P001, P099, P100, etc.)
+        CONCAT('P', LPAD(REGEXP_REPLACE(`id_promotion`, r'PROM(\d+)', r'\1'), 3, '0')) AS `id_promotion`,
+
         `id_produit`,
         `type_promotion`,
-        `date_début`,
-        `date_fin`,
+        
+        -- Conversion des dates en format DATE
+        SAFE_CAST(`date_début` AS DATE) AS `date_debut_date`,
+        SAFE_CAST(`date_fin` AS DATE) AS `date_fin_date`,
         `responsable_promotion`,
         
-        -- Extraction des promotions en pourcentage (ex: "20%")
+        -- Extraction des promotions en pourcentage et conversion en FLOAT64 (/100)
         COALESCE(
             CASE 
                 WHEN REGEXP_CONTAINS(`valeur_promotion`, r'^\d+%$') 
-                THEN REGEXP_REPLACE(`valeur_promotion`, '%', '') 
-            END, 'NaN') AS `valeur_pourcentage`,
+                THEN CAST(REGEXP_REPLACE(`valeur_promotion`, '%', '') AS FLOAT64) / 100
+            END, NULL) AS `valeur_pourcentage`,
         
-        -- Extraction des promotions en euros (ex: "€ 27,00" -> "27.00")
+        -- Extraction des promotions en euros et conversion en FLOAT64
         COALESCE(
             CASE 
                 WHEN REGEXP_CONTAINS(`valeur_promotion`, r'^€\s*\d+,\d+$') 
-                THEN REPLACE(REGEXP_REPLACE(`valeur_promotion`, r'€\s*', ''), ',', '.')
+                THEN CAST(REPLACE(REGEXP_REPLACE(`valeur_promotion`, r'€\s*', ''), ',', '.') AS FLOAT64)
                 WHEN REGEXP_CONTAINS(`valeur_promotion`, r'^€\s*\d+$') 
-                THEN REGEXP_REPLACE(`valeur_promotion`, r'€\s*', '')
-            END, 'NaN') AS `valeur_montant`
+                THEN CAST(REGEXP_REPLACE(`valeur_promotion`, r'€\s*', '') AS FLOAT64)
+            END, NULL) AS `valeur_remise`
 
     FROM raw_data
 )
