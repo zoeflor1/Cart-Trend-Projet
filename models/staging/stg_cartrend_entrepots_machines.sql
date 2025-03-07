@@ -16,12 +16,12 @@ SELECT
         coalesce(`temps_darrêt`, 0) as temps_darret,
         coalesce(`volume_traité`, 0) as volume_traite,
         
-        -- Normaliser le mois en format 'YYYY-mm'
+        -- Normaliser le mois en format DATE (YYYY-MM-01)
         CASE
-            WHEN LENGTH(mois) >= 7 THEN -- Si la longueur de la chaîne est au moins 'YYYY-mm'
-                SUBSTR(mois, 1, 7)  -- Prendre les 7 premiers caractères (format 'YYYY-mm')
-            ELSE
-                'NaN' -- Si le mois est mal formaté, on le remplace par 'NaN'
+            WHEN REGEXP_CONTAINS(mois, r'^\d{4}-\d{2}$') THEN 
+                PARSE_DATE('%Y-%m', mois)  -- Convertir en DATE (YYYY-MM-01)
+            ELSE 
+                NULL  -- Si le format est incorrect, renvoyer NULL
         END AS mois
 
 FROM `cart-trend-projet.CartTrend.Carttrend_Entrepots_Machines`
