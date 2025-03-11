@@ -1,6 +1,6 @@
 WITH quantite_par_categorie AS (
     SELECT
-        FORMAT_DATE('%m-%Y', DATE(c.date_commande)) AS mois,
+        FORMAT_DATE('%Y-%m', DATE(c.date_commande)) AS mois,
         p.`Catégorie`,
         SUM(dc.quantite) AS quantite_vendue
     FROM `cart-trend-projet.CartTrend.stg_carttrend_commandes` c
