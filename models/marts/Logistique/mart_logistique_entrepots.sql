@@ -1,5 +1,3 @@
--- models/logistique_mart.sql
-
 WITH volume_par_entrepot AS (
     -- Calcul du volume traité par entrepôt
     SELECT
@@ -67,6 +65,19 @@ commandes_par_entrepot AS (
         {{ ref('stg_carttrend_commandes') }} c
     GROUP BY
         c.`id_entrepôt_départ`
+),
+
+delai_livraison_par_entrepot AS (
+    -- Calcul du délai total de livraison en jours par entrepôt
+    SELECT
+        c.`id_entrepôt_départ` AS `id_entrepôt`,
+        SUM(DATE_DIFF(c.`date_livraison_estimée`, c.date_commande, DAY)) AS `délai_livraison_jours`
+    FROM
+        {{ ref('stg_carttrend_commandes') }} c
+    WHERE
+        c.`date_livraison_estimée` IS NOT NULL
+    GROUP BY
+        c.`id_entrepôt_départ`
 )
 
 -- Final result: Consolidation de toutes les métriques
@@ -77,7 +88,8 @@ SELECT
     COALESCE(p.nombre_pannes, 0) AS nombre_pannes,  -- Gestion des entrepôts sans panne
     s.stockage_effectif,  -- Correction : stockage_effectif = volume_stocke
     s.capacite_max AS stockage_max,
-    c.nombre_commandes
+    c.nombre_commandes,
+    COALESCE(d.`délai_livraison_jours`, 0) AS `délai_livraison_jours`  -- Somme totale des délais de livraison
 FROM
     volume_par_entrepot v
 JOIN
@@ -88,3 +100,5 @@ JOIN
     stockage_et_volume_par_entrepot s ON v.`id_entrepôt` = s.`id_entrepôt`
 JOIN
     commandes_par_entrepot c ON v.`id_entrepôt` = c.`id_entrepôt`
+LEFT JOIN
+    delai_livraison_par_entrepot d ON v.`id_entrepôt` = d.`id_entrepôt`
