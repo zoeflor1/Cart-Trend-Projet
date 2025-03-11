@@ -9,7 +9,7 @@ WITH raw_data AS (
         EXTRACT(YEAR FROM PARSE_DATE('%Y-%m-%d', `date_post`)) AS annee_post,  -- Extraction de l'année
         EXTRACT(MONTH FROM PARSE_DATE('%Y-%m-%d', `date_post`)) AS mois_post,  -- Extraction du mois
         -- Création de la colonne mois-année au format mm-yyyy
-        FORMAT_DATE('%m-%Y', PARSE_DATE('%Y-%m-%d', `date_post`)) AS mois_annee_post
+        FORMAT_DATE('%Y-%m', PARSE_DATE('%Y-%m-%d', `date_post`)) AS mois_annee_post
     FROM `cart-trend-projet.CartTrend.Carttrend_Posts`
 ),
 
@@ -30,4 +30,4 @@ cleaned_data AS (
 -- Trier par id_post de manière croissante
 SELECT *
 FROM cleaned_data
-ORDER BY `id_post` ASC
+ORDER BY mois_annee_post DESC

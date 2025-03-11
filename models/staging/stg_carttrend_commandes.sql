@@ -25,7 +25,7 @@ SELECT
     ) AS `délai_livraison_jours`,
 
     -- Extraction du mois et de l'année de la date_livraison_estimée au format mm-yyyy
-    FORMAT_DATE('%m-%Y', COALESCE(PARSE_DATE('%Y-%m-%d', `date_livraison_estimée`), DATE '1970-01-01')) AS `mois_annee_livraison`
+    FORMAT_DATE('%Y-%m', COALESCE(PARSE_DATE('%Y-%m-%d', `date_livraison_estimée`), DATE '1970-01-01')) AS `mois_annee_livraison`
 
 FROM `cart-trend-projet.CartTrend.Carttrend_Commandes`
 WHERE id_commande IS NOT NULL  
