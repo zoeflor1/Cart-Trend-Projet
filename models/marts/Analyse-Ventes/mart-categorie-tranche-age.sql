@@ -12,6 +12,7 @@ WITH tranche_age AS (
 ),
 
 quantite_par_categorie_tranche_age AS (
+    -- Nombre de commandes par catégorie et tranche d'âge
     SELECT
         p.`Catégorie`,
         ta.tranche_age,
@@ -21,8 +22,20 @@ quantite_par_categorie_tranche_age AS (
     JOIN `cart-trend-projet.CartTrend.stg_carttrend_produits` p ON dc.id_produit = p.ID
     JOIN tranche_age ta ON c.id_client = ta.id_client
     GROUP BY p.`Catégorie`, ta.tranche_age
+),
+
+categorie_top_par_tranche AS (
+    -- Sélectionner la catégorie ayant le plus grand nombre de commandes pour chaque tranche d'âge
+    SELECT 
+        tranche_age,
+        `Catégorie`,
+        nb_commandes,
+        ROW_NUMBER() OVER (PARTITION BY tranche_age ORDER BY nb_commandes DESC) AS rang
+    FROM quantite_par_categorie_tranche_age
 )
 
-SELECT * 
-FROM quantite_par_categorie_tranche_age
-ORDER BY `Catégorie`, tranche_age
+-- Garder uniquement la catégorie la plus achetée pour chaque tranche d'âge
+SELECT tranche_age, `Catégorie`, nb_commandes
+FROM categorie_top_par_tranche
+WHERE rang = 1
+ORDER BY nb_commandes

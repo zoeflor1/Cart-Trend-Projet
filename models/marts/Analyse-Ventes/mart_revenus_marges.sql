@@ -56,9 +56,12 @@ budget_marketing AS (
     GROUP BY 1
 ),
 revenu_mensuel AS (
-    -- Calcul des revenus et marges par mois
+    -- Calcul des revenus, marges et nombre de commandes par mois
     SELECT 
         FORMAT_DATE('%Y-%m', DATE(c.date_commande)) AS mois,
+
+        -- Nombre total de commandes par mois
+        COUNT(DISTINCT c.id_commande) AS nombre_commandes,
 
         -- Calcul des revenus sans promo (total brut)
         ROUND(SUM(c.quantite * c.prix_unitaire_original), 2) AS revenu_sans_promo,
