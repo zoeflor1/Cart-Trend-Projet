@@ -1,8 +1,8 @@
-WITH ctr_data AS (
+WITH tc_data AS (
     SELECT
         `événement_type`,
         SUM(clics) AS total_clics,
-        SUM(impressions) AS total_impressions
+        SUM(conversions) AS total_conversion
     FROM
         {{ ref('stg_carttrend_campaigns') }}
     GROUP BY
@@ -12,8 +12,8 @@ WITH ctr_data AS (
 SELECT
     `événement_type`,
     CASE
-        WHEN total_impressions > 0 THEN ROUND(CAST(total_clics AS FLOAT64) / total_impressions * 100, 2)
+        WHEN total_clics > 0 THEN ROUND(CAST(total_conversion AS FLOAT64) / total_clics * 100, 2)
         ELSE 0
-    END AS ctr_moyen
+    END AS tc_moyen
 FROM
-    ctr_data
+    tc_data
