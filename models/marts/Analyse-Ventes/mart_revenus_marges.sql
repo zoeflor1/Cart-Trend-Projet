@@ -72,7 +72,7 @@ revenu_mensuel AS (
         SUM(CASE WHEN c.type_promotion = 'Remise fixe' THEN c.quantite ELSE 0 END) AS quantite_promo_remise_fixe,
         SUM(CASE WHEN c.type_promotion IS NULL THEN c.quantite ELSE 0 END) AS quantite_sans_promo,
 
-        -- 🔥 Nombre total de produits vendus (nouvelle métrique)
+        -- 🔥 Nombre total de produits vendus
         SUM(c.quantite) AS quantite_totale_vendue,
 
         -- Calcul des revenus sans promo (total brut)
@@ -80,6 +80,12 @@ revenu_mensuel AS (
 
         -- Calcul des revenus avec promo (après réduction)
         ROUND(SUM(c.quantite * c.prix_apres_promo), 2) AS revenu_avec_promo,
+
+        -- ✅ Nouveau : Revenu des produits avec promotion en pourcentage
+        ROUND(SUM(CASE WHEN c.type_promotion = 'Pourcentage' THEN c.quantite * c.prix_apres_promo ELSE 0 END), 2) AS revenu_promo_pourcentage,
+
+        -- ✅ Nouveau : Revenu des produits avec remise fixe
+        ROUND(SUM(CASE WHEN c.type_promotion = 'Remise fixe' THEN c.quantite * c.prix_apres_promo ELSE 0 END), 2) AS revenu_promo_remise_fixe,
 
         -- Différence due aux promos
         ROUND(SUM(c.quantite * c.prix_unitaire_original) - SUM(c.quantite * c.prix_apres_promo), 2) AS difference_revenu,
