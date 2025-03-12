@@ -39,7 +39,7 @@ commandes_avec_promos AS (
         CASE 
             WHEN p.id_promotion IS NULL THEN c.prix_unitaire_original  -- Pas de promo
             WHEN p.type_promotion = 'Remise fixe' THEN GREATEST(0, c.prix_unitaire_original - p.valeur_remise) -- Remise fixe
-            WHEN p.type_promotion = 'Pourcentage' THEN GREATEST(0, c.prix_unitaire_original * (1 - p.valeur_pourcentage / 100)) -- Pourcentage
+            WHEN p.type_promotion = 'Pourcentage' THEN GREATEST(0, c.prix_unitaire_original * (1 - p.valeur_pourcentage)) -- Pourcentage
             ELSE c.prix_unitaire_original  -- Sécurité au cas où
         END AS prix_apres_promo
     FROM commandes c
