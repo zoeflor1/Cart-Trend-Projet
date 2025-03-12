@@ -52,10 +52,11 @@ revenu_par_categorie AS (
 -- Jointure entre quantite_par_categorie et revenu_par_categorie
 SELECT 
     qpc.mois,
+    PARSE_DATE('%Y-%m', qpc.mois) AS mois_date, -- Ajout d'une colonne date pour le tri
     qpc.`Catégorie`,
     qpc.quantite_vendue,
     rpc.revenu_genere
 FROM quantite_par_categorie qpc
 LEFT JOIN revenu_par_categorie rpc 
     ON qpc.mois = rpc.mois AND qpc.`Catégorie` = rpc.`Catégorie`
-ORDER BY qpc.mois, qpc.`Catégorie`
+ORDER BY mois_date, qpc.`Catégorie`
