@@ -89,7 +89,12 @@ SELECT
     s.stockage_effectif,  -- Correction : stockage_effectif = volume_stocke
     s.capacite_max AS stockage_max,
     c.nombre_commandes,
-    COALESCE(d.`délai_livraison_jours`, 0) AS `délai_livraison_jours`  -- Somme totale des délais de livraison
+    COALESCE(d.`délai_livraison_jours`, 0) AS `délai_livraison_jours`,  -- Somme totale des délais de livraison
+    -- Nouveau calcul : délai livraison moyen par commande
+    CASE 
+        WHEN c.nombre_commandes > 0 THEN ROUND(COALESCE(d.`délai_livraison_jours`, 0) / c.nombre_commandes, 2)
+        ELSE 0 
+    END AS `délai_livraison_moyen_par_commande`
 FROM
     volume_par_entrepot v
 JOIN
