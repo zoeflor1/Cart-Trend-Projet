@@ -20,7 +20,7 @@ SELECT
     ROUND(AVG(CASE WHEN c.`délai_livraison_jours` > 7 THEN s.note_client END), 3) AS note_moyenne_delai_plus_7_jours,  
     ROUND(AVG(CASE WHEN c.`délai_livraison_jours` > 14 THEN s.note_client END), 3) AS note_moyenne_delai_plus_14_jours,  
     ROUND(AVG(CASE WHEN c.`délai_livraison_jours` > 21 THEN s.note_client END), 3) AS note_moyenne_delai_plus_21_jours,  
-    ROUND(AVG(CASE WHEN c.`délai_livraison_jours` > 28 THEN s.note_client END), 3) AS note_moyenne_delai_plus_21_jours
+    ROUND(AVG(CASE WHEN c.`délai_livraison_jours` > 28 THEN s.note_client END), 3) AS note_moyenne_delai_plus_28_jours
 FROM commandes c
 LEFT JOIN satisfaction s 
     ON c.id_commande = s.id_commande
